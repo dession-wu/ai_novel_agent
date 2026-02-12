@@ -274,8 +274,9 @@ docker run -p 8000:8000 ai-novel-agent-backend
 
 ## 📞 联系方式
 
-- 项目主页: https://github.com/yourusername/ai-novel-agent
-- 问题反馈: https://github.com/yourusername/ai-novel-agent/issues
+- 项目主页: https://github.com/dession-wu/ai_novel_agent
+- 问题反馈: https://github.com/dession-wu/ai_novel_agent/issues
+- Github Page：https://dession-wu.github.io/ai-novel-agent
 - 邮箱: your.email@example.com
 
 ## 🗺️ 路线图
