@@ -77,14 +77,14 @@ if (demoGenerateBtn && demoInput && demoOutput) {
         
         if (!inputText) {
             demoOutput.innerHTML = `
-                <h4>AI Continuation:</h4>
-                <p>Please enter a story snippet to continue...</p>
+                <h4>AI续写结果：</h4>
+                <p>请输入故事片段进行续写...</p>
             `;
             return;
         }
         
         // Show loading state
-        demoGenerateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        demoGenerateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
         demoGenerateBtn.disabled = true;
         
         // Simulate AI generation (replace with actual API call)
@@ -94,34 +94,33 @@ if (demoGenerateBtn && demoInput && demoOutput) {
             // Based on selected style
             switch (style) {
                 case 'fantasy':
-                    generatedContent = `The ancient forest came alive around them, the trees whispering secrets that only the wind could understand. As they ventured deeper, the air grew thick with magic, and distant lights flickered between the trunks like mischievous spirits. Suddenly, a figure stepped from the shadows—a tall elf with eyes like starlight, holding a staff topped with a glowing crystal. "You tread upon sacred ground," they said, their voice like wind through leaves. "What brings mortals to the heart of the Wildwood?"`;
+                    generatedContent = `古老的森林在他们周围苏醒过来，树木低语着只有风能理解的秘密。当他们深入其中，空气变得浓稠如魔法，远处的灯光在树干间闪烁，像顽皮的精灵。突然，一个身影从阴影中走出——一个高大的精灵，眼睛像星光，手持一根顶端镶有发光水晶的法杖。"你们踏入了圣地，"他们说，声音如树叶间的风声，"是什么风把凡人吹到了野林的心脏？"`;
                     break;
                 
                 case 'scifi':
-                    generatedContent = `The starship shuddered as it entered the asteroid field, alarms blaring throughout the bridge. Captain Reynolds gripped the console, her knuckles white. "Full reverse thrusters!" she ordered, but it was too late. A massive asteroid clipped the port wing, sending the ship into a death spiral. Just as all hope seemed lost, a blinding light enveloped the vessel. When it faded, they found themselves in the center of a massive alien structure, its surfaces pulsing with an otherworldly energy."Welcome, travelers," a voice boomed through the comms. "We've been expecting you."`;
+                    generatedContent = `星舰进入小行星带时剧烈震动，警报声响彻整个舰桥。雷诺兹舰长紧握着控制台，指节发白。"全力反向推进！"她下令，但已经太晚了。一颗巨大的小行星擦过左机翼，使飞船进入死亡螺旋。就在所有希望似乎都破灭时，一道耀眼的光芒包围了飞船。当光芒散去，他们发现自己置身于一个巨大的外星结构中心，其表面脉动着超凡的能量。"欢迎，旅行者们，"一个声音通过通讯系统隆隆响起，"我们一直在等你们。"`;
                     break;
                 
                 case 'romance':
-                    generatedContent = `The rain tapped gently against the cafe window, creating a soft rhythm that matched the beating of her heart. Across the table, he smiled, his eyes crinkling at the corners in that way she loved. "You know," he said, reaching across the table to brush her hand, "I've been wanting to tell you this for a long time." Her breath caught in her throat as he continued. "Every moment with you feels like magic. You've turned my ordinary life into something extraordinary, and I don't want to imagine a future without you in it."`;
+                    generatedContent = `雨水轻轻敲打着咖啡馆的窗户，创造出与她心跳相匹配的柔和节奏。桌对面，他微笑着，眼睛在 corners 皱起，那是她喜欢的样子。"你知道吗，"他说，伸手越过桌子轻触她的手，"我一直想告诉你这件事很久了。"她屏住呼吸，听他继续说："和你在一起的每一刻都像魔法。你把我平凡的生活变成了非凡的旅程，我无法想象没有你的未来。"`;
                     break;
                 
                 case 'mystery':
-                    generatedContent = `The old mansion loomed before them, its windows boarded up, but a faint light glowed from the attic. Detective Morgan tightened her grip on her flashlight, her partner Jones right behind her. "You're sure this is where the witness saw him?" Jones asked, his voice tight with tension. Morgan nodded. "Every clue leads here." As they crossed the threshold, the door slammed shut behind them with a deafening crash. When they turned, it was gone—replaced by a solid wall. "We're not alone," Morgan whispered, her hand drifting to her service weapon. A low laugh echoed through the empty hall."Welcome, detectives. I've been waiting for you."`;
+                    generatedContent = `古老的宅邸耸立在他们面前，窗户被木板封住，但阁楼透出微弱的光线。摩根侦探紧握着手电筒，她的搭档琼斯紧跟在身后。"你确定证人是在这里看到他的？"琼斯问道，声音因紧张而紧绷。摩根点头："所有线索都指向这里。"当他们跨过门槛时，门在他们身后砰地关上，发出震耳欲聋的响声。当他们转身时，门不见了——取而代之的是一堵实心墙。"我们不是一个人，"摩根低语，手伸向她的配枪。一阵低沉的笑声在空荡的大厅中回荡："欢迎，侦探们。我一直在等你们。"`;
                     break;
                 
                 default:
-                    generatedContent = `The world around them transformed as they took the final step, the air shimmering with untapped potential. They had journeyed far, faced countless challenges, and now stood at the threshold of something extraordinary. What happened next would change everything, not just for them, but for the entire realm. The future stretched out before them, full of possibilities, and for the first time in a long while, they felt truly alive.`;
+                    generatedContent = `当他们迈出最后一步时，周围的世界发生了变化，空气中闪烁着未被发掘的潜力。他们长途跋涉，面对无数挑战，现在站在了非凡事物的门槛上。接下来发生的事情将改变一切，不仅对他们，而且对整个领域。未来在他们面前展开，充满可能性，很久以来，他们第一次感到真正的活着。`;
             }
             
             demoOutput.innerHTML = `
-                <h4>AI Continuation:</h4>
+                <h4>AI续写结果：</h4>
                 <p>${generatedContent}</p>
             `;
             
             // Reset button
-            demoGenerateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate';
+            demoGenerateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成';
             demoGenerateBtn.disabled = false;
-            
         }, 1500);
     });
 }
@@ -236,10 +235,10 @@ document.addEventListener('click', (e) => {
 // Dynamic Typing Effect for Hero Title
 function typingEffect() {
     const titles = [
-        'Transform your writing',
-        'Create amazing novels',
-        'Unleash your creativity',
-        'Write with AI assistance'
+        '改变你的写作方式',
+        '创作精彩的小说',
+        '释放你的创造力',
+        '借助AI辅助写作'
     ];
     
     let currentIndex = 0;
@@ -388,4 +387,4 @@ const debouncedScrollReveal = debounce(handleScrollReveal, 100);
 window.removeEventListener('scroll', handleScrollReveal);
 window.addEventListener('scroll', debouncedScrollReveal);
 
-console.log('NOVA GitHub Pages - Interactive Features Loaded!');
+console.log('NOVA GitHub Pages - 交互式功能已加载！');
