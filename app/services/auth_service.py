@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -31,9 +31,9 @@ class AuthService:
         """创建访问令牌"""
         to_encode = data.copy()
         if expires_delta:
-            expire = datetime.now(UTC) + expires_delta
+            expire = datetime.now(timezone.utc) + expires_delta
         else:
-            expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
@@ -41,7 +41,7 @@ class AuthService:
     def create_refresh_token(self, data: Dict[str, Any]) -> str:
         """创建刷新令牌"""
         to_encode = data.copy()
-        expire = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
@@ -108,6 +108,39 @@ class AuthService:
         if not self.verify_password(password, user.hashed_password):
             return None
         return user
+
+    def update_user(self, db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None) -> Optional[User]:
+        """更新用户资料（用户名/邮箱），冲突时抛出 ValueError"""
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+
+        if username is not None and username != user.username:
+            existing = self.get_user_by_username(db, username=username)
+            if existing and existing.id != user_id:
+                raise ValueError("用户名已被占用")
+            user.username = username
+
+        if email is not None and email != user.email:
+            existing = self.get_user_by_email(db, email=email)
+            if existing and existing.id != user_id:
+                raise ValueError("邮箱已被占用")
+            user.email = email
+
+        db.commit()
+        db.refresh(user)
+        return user
+
+    def update_password(self, db: Session, user_id: int, current_password: str, new_password: str) -> bool:
+        """修改用户密码：校验旧密码，通过后写入新哈希"""
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+        if not self.verify_password(current_password, user.hashed_password):
+            return False
+        user.hashed_password = self.get_password_hash(new_password)
+        db.commit()
+        return True
 
 # 创建认证服务实例
 auth_service = AuthService()

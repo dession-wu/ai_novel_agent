@@ -1,6 +1,8 @@
 // API Configuration
+// 基础地址优先读取构建时环境变量 VITE_API_BASE_URL，未配置时回退到同源相对路径 /api/v1
+// （开发环境由 vite server.proxy 转发到本地后端；生产环境由容器内 nginx 反代到后端服务）
 const API_CONFIG = {
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: (import.meta.env.VITE_API_BASE_URL as string) || '/api/v1',
   timeout: 10000,
   simulationDelay: 0, // No delay by default
 };

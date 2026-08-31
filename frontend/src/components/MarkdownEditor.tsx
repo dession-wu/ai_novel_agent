@@ -321,6 +321,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let generatedLength = 0;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -338,20 +339,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
                     try {
                         const data = JSON.parse(dataStr);
                         if (data.content) {
-                            // 实时插入内容到编辑器
-                            setContent(prev => {
-                                // 重新获取光标位置（因为每次更新可能会重置光标）
-                                // 这里简化处理：直接在之前的光标后追加
-                                // 更好的做法是维护一个插入点引用
-                                return prev.slice(0, cursorPosition) + data.content + prev.slice(cursorPosition);
-                            });
-                            
-                            // 更新插入位置，以便下一次插入在之后
-                            // 注意：这里的逻辑有缺陷，因为 setContent 是异步的，
-                            // cursorPosition 在闭包中是固定的。
-                            // 正确的做法应该是：
-                            // 1. 维护一个 ref 记录已生成的总长度
-                            // 2. 每次 setContent 时，插入位置 = 初始光标 + 已生成长度
+                            // 实时插入内容到编辑器：插入位置 = 初始光标 + 已生成长度
+                            // （与 handleAIGenerateStream 一致的 insertStreamChunk 模式，
+                            // 修复原实现闭包固定 cursorPosition 导致流块序颠倒的问题）
+                            insertStreamChunk(data.content, cursorPosition, generatedLength);
+                            generatedLength += data.content.length;
                         }
                     } catch (e) {
                         console.error('解析SSE数据失败', e);
@@ -1255,7 +1247,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
       `}</style>
     </div>
   );
-};
+});
 
 // 使用React.memo优化组件渲染
 export default React.memo(MarkdownEditor);

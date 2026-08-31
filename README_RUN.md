@@ -1,5 +1,7 @@
 # AI Novel Agent System 一键启动指南
 
+> **重要说明**：`start_all.bat` / `start_all.ps1` 等一键启动脚本未包含在仓库中（已被 .gitignore 排除），本文中涉及脚本的部分仅作历史参考。开发环境请直接使用「八、手动启动方式」；生产环境请使用「十一、阿里云服务器 Docker Compose 部署」。
+
 ## 一、脚本介绍
 
 本项目提供了一键启动脚本，用于快速启动AI Novel Agent System的后端和前端服务。脚本会自动处理依赖安装和服务启动，简化用户的操作流程。
@@ -67,7 +69,7 @@
 | 服务类型 | 访问地址 | 说明 |
 |---------|---------|------|
 | 后端API | http://localhost:8000 | 后端服务主地址 |
-| API文档 | http://localhost:8000/api/v1/docs | Swagger UI文档 |
+| API文档 | http://localhost:8000/docs | Swagger UI文档 |
 | 前端应用 | http://localhost:5173 | 前端管理界面 |
 | Prometheus监控 | http://localhost:8000/metrics | 监控指标 |
 
@@ -82,7 +84,7 @@
 - 如果端口被占用，脚本会启动失败，需要手动关闭占用端口的程序
 
 ### 3. 执行权限
-- PowerShell脚本可能需要管理员权限才能执行
+- PowerShell脚本可能需要管理员权限才能启动
 - 如果出现 "无法加载文件" 错误，请检查PowerShell执行策略
 
 ### 4. 环境变量
@@ -160,10 +162,10 @@ npm run dev
 
 ## 九、停止服务
 
-### 1. 停止后端服务
+### 1. 停止后端
 - 在后端服务的控制台窗口中，按 `Ctrl + C`
 
-### 2. 停止前端服务
+### 2. 停止前端
 - 在前端服务的控制台窗口中，按 `Ctrl + C`
 
 ### 3. 强制结束进程
@@ -189,25 +191,65 @@ Taskkill /F /IM node.exe
    - 再启动前端服务
    - 访问 `http://localhost:5173` 开始开发
 
-## 十一、生产环境部署
+## 十一、阿里云服务器 Docker Compose 部署（推荐）
 
-### 1. 后端生产部署
+生产环境使用 docker compose 一键部署：前端（nginx 静态托管 + `/api` 反代）、后端（FastAPI + uvicorn）、数据库（PostgreSQL）三个容器。宿主机只对外暴露 **8081** 一个端口，浏览器访问 `http://服务器IP:8081` 即可使用全部功能。
+
+### 1. 前置条件
+
+- 阿里云 Ubuntu 服务器，已安装 Docker 及 docker compose 插件（安装参考：`curl -fsSL https://get.docker.com | sh`）
+- 在阿里云安全组中放行入方向 TCP 8081 端口
+
+### 2. 部署步骤
+
 ```bash
-# 使用gunicorn或uvicorn部署
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+# 1) 上传代码到服务器（或 git clone）
+scp -r ai_novel_agent root@服务器IP:/opt/
+cd /opt/ai_novel_agent
+
+# 2) 准备环境变量（必填 SECRET_KEY 与 OPENAI_API_KEY）
+cp .env.example .env
+vim .env
+#   SECRET_KEY：openssl rand -hex 32 生成强随机值
+#   OPENAI_API_KEY：填写真实密钥
+
+# 3) 构建并启动
+docker compose up -d --build
+
+# 4) 查看状态与日志
+docker compose ps
+docker compose logs -f backend
 ```
 
-### 2. 前端生产部署
-```bash
-# 构建生产版本
-npm run build
+### 3. 访问地址
 
-# 使用nginx或其他Web服务器部署
-# 将dist目录部署到Web服务器
+- 前端应用：`http://服务器IP:8081`（唯一对外入口，API 经同源 `/api` 反代）
+- 后端 8000 与数据库 5432 均不映射到宿主机（同机多项目避免端口冲突）。如需临时访问后端 Swagger 文档，可用 SSH 隧道：`ssh -L 8000:localhost:8000 root@服务器IP` 后访问 `http://localhost:8000/docs`
+
+### 4. 架构说明
+
+- 前端：多阶段构建（node 构建、nginx 托管），`frontend/nginx/default.conf` 将 `/api/` 反代到后端容器 `backend:8000`
+- 前端 API 基址：构建时注入 `VITE_API_BASE_URL`，默认同源相对路径 `/api/v1`（无需改配置即端口直通可用）
+- 数据持久化：命名卷 `pgdata`（Postgres 数据）与 `chroma_data`（向量库数据）
+- 健康检查链路：db（pg_isready）→ backend（curl 首页）→ frontend（wget 首页）
+- 安全：后端容器以非 root 用户运行；`.env` 已被 `.dockerignore` 排除，不会进入镜像
+
+### 5. 常用运维命令
+
+```bash
+docker compose ps                 # 查看服务状态
+docker compose logs -f backend    # 跟踪后端日志
+docker compose restart backend    # 重启后端
+docker compose up -d --build      # 更新代码后重建
+docker compose down               # 停止（保留数据卷）
+docker compose down -v            # 停止并删除数据卷（慎用，会清空数据）
 ```
+
+### 6. 后续切换域名
+
+将来有域名后，可在最外层再加统一 nginx 或直接将 8081 换成 80/443 对外，并将 `.env` 中 `CORS_ORIGINS`、`VITE_API_BASE_URL` 按需调整为对应域名（同源方案下通常无需改动）。
 
 ## 总结
 
-一键启动脚本简化了AI Novel Agent System的启动流程，适合开发和测试环境使用。脚本会自动处理依赖安装和服务启动，用户只需等待服务启动完成，即可访问相应的服务地址。
-
-如果脚本出现问题，可以尝试手动启动服务，或查看日志文件定位问题。对于生产环境，建议使用更稳定的部署方式。
+- 开发/测试环境：使用「八、手动启动方式」（后端 8000 + 前端 5173）。
+- 生产环境（阿里云 Ubuntu）：按「十一」三步完成：上传代码 → `cp .env.example .env` 并填写密钥 → `docker compose up -d --build`，随后访问 `http://服务器IP:8081`。

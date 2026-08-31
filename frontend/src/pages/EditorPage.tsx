@@ -33,20 +33,8 @@ const EditorPage = () => {
         setNovels(Array.isArray(data) ? data : []);
       } catch (err: any) {
         console.error('获取小说列表失败:', err);
-        // 如果是授权错误，使用模拟数据
-        if (err.message?.includes('Not authorized') || err.message?.includes('Authentication failed')) {
-          console.log('使用模拟小说数据');
-          setNovels([{
-            id: 1,
-            title: '示例小说',
-            genre: '玄幻',
-            style: '轻松',
-            synopsis: '这是一个示例小说',
-            status: 'ongoing',
-            chapters: 10,
-            updated_at: new Date().toISOString()
-          }]);
-        }
+        // 不再回退到模拟假数据，展示真实错误提示
+        setError('获取小说列表失败: ' + (err.message || '未知错误'));
       }
     };
     fetchNovels();
@@ -69,15 +57,8 @@ const EditorPage = () => {
         setSaveStatus('saved');
       } catch (err: any) {
         console.error('加载章节失败:', err);
-        // 如果是授权错误，使用模拟数据而不是显示错误
-        if (err.message?.includes('Not authorized') || err.message?.includes('Authentication failed')) {
-          console.log('使用模拟章节数据');
-          setContent('# 第一章 开始\n\n这是示例章节内容。您可以开始写作了...\n\n## 小标题\n\n这里是正文内容。');
-          setSelectedNovelId(1);
-          setSaveStatus('saved');
-        } else {
-          setError('加载章节失败: ' + (err.message || '未知错误'));
-        }
+        // 不再回退到模拟假数据，统一展示真实错误提示（登录失效时 api.ts 会清除 token 并跳转登录）
+        setError('加载章节失败: ' + (err.message || '未知错误'));
       } finally {
         setIsLoading(false);
       }

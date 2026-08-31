@@ -1,0 +1,33 @@
+# ---------- Stage 1: build static files with Vite ----------
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Install dependencies first (better layer caching; no lockfile in repo, so npm install)
+COPY package.json ./
+RUN npm install --no-audit --no-fund
+
+# Copy sources
+COPY . .
+
+# API base URL baked into the bundle at build time.
+# Default is the same-origin relative path /api/v1, which is proxied to the
+# backend container by nginx in stage 2. Override via compose build args
+# (e.g. https://api.example.com/api/v1) if a split-domain setup is needed.
+ARG VITE_API_BASE_URL=/api/v1
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+RUN npm run build
+
+# ---------- Stage 2: serve with nginx ----------
+FROM nginx:1.27-alpine
+
+# nginx config: SPA fallback + /api reverse proxy to backend service
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 --start-period=10s \
+    CMD wget -q -O /dev/null http://localhost/ || exit 1

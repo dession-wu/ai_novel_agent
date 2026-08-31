@@ -60,10 +60,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-# 配置CORS
+# 配置CORS：白名单来自 app.core.config.settings.CORS_ORIGINS（可经 .env / 环境变量覆盖）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有源，生产环境应限制为特定域名
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

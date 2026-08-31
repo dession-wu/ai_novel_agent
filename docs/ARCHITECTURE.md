@@ -124,7 +124,6 @@ AI Novel Agent 是一个智能小说写作助手系统，采用前后端分离�
 **关键类**:
 - `LLMService`: LLM服务封装
 - `PromptManager`: 提示词管理
-- `AIServiceFactory`: AI服务工厂
 
 ### 5. 校对模块 (Proofreading)
 **文件位置**: `app/services/proofreading_service.py`
@@ -134,14 +133,6 @@ AI Novel Agent 是一个智能小说写作助手系统，采用前后端分离�
 - 逻辑一致性检查
 - 风格建议
 - 重复内容检测
-
-### 6. 发布模块 (Publishing)
-**文件位置**: `app/services/publishing_adapters.py`
-
-**功能**:
-- 多平台发布适配
-- 格式转换
-- 元数据管理
 
 ## 数据模型
 
@@ -223,8 +214,6 @@ src/
 │   └── ...
 ├── api/                 # API客户端
 │   └── api.ts
-├── services/            # 前端服务
-│   └── aiServiceFactory.ts
 └── lib/                 # 工具函数
     └── utils.ts
 ```

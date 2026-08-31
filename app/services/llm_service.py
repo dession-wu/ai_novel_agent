@@ -44,10 +44,6 @@ class LLMService:
             "synopsis": synopsis
         }
         
-        # 生成动态Prompt
-        dynamic_prompt = prompt_manager.generate_dynamic_prompt("outline", context)
-        
-        # 使用动态Prompt创建chain
         chain = template | self.llm | self.output_parser
         result = await chain.ainvoke(context)
         
@@ -75,10 +71,6 @@ class LLMService:
             "world_bible": world_bible
         }
         
-        # 生成动态Prompt
-        dynamic_prompt = prompt_manager.generate_dynamic_prompt("chapter", context_data)
-        
-        # 使用动态Prompt创建chain
         chain = template | self.llm | self.output_parser
         result = await chain.ainvoke(context_data)
         
@@ -99,24 +91,12 @@ class LLMService:
             "content": content
         }
         
-        # 生成动态Prompt
-        dynamic_prompt = prompt_manager.generate_dynamic_prompt("summary", context)
-        
-        # 使用动态Prompt创建chain
         chain = template | self.llm | self.output_parser
         result = await chain.ainvoke(context)
         
         self.cache[cache_key] = result
         return result
     
-    def evaluate_template(self, template_type: str, score: float, feedback: str = None):
-        """评估模板并记录反馈"""
-        prompt_manager.evaluate_template(template_type, score, feedback)
-    
-    def get_template_evaluation(self, template_type: str) -> dict:
-        """获取模板评估数据"""
-        return prompt_manager.get_template_evaluation(template_type)
-
     async def stream_continue_chapter(
         self, 
         title: str, 

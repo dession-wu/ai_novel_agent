@@ -1,5 +1,6 @@
 import re
 from typing import List, Tuple, Dict, Any
+from app.core.config import settings
 from app.models.models import ChapterStatus, Chapter, Comment, ChapterRevision
 from sqlalchemy.orm import Session
 from app.services.llm_service import llm_service
@@ -9,10 +10,9 @@ from langchain_core.output_parsers import JsonOutputParser
 
 class ProofreadingService:
     def __init__(self):
-        self.sensitive_words = ["暴力", "血腥", "涉黄"]
+        # 敏感词列表来自配置（app.core.config.settings.SENSITIVE_WORDS），可经 .env / 环境变量覆盖
+        self.sensitive_words = list(settings.SENSITIVE_WORDS)
         self.output_parser = JsonOutputParser()
-        # 使用简单的基于规则的检查，无需Java依赖
-        # 未来可以替换为language_tool_python.LanguageTool('zh-CN')
 
     def filter_sensitive(self, text: str) -> List[Tuple[str, int]]:
         found = []
@@ -21,8 +21,10 @@ class ProofreadingService:
                 found.append((w, m.start()))
         return found
 
-    async def grammar_check(self, text: str) -> Dict[str, Any]:
-        # 增强的语法检查功能
+    async def basic_text_check(self, text: str) -> Dict[str, Any]:
+        # 基础文本检查：基于正则规则的重复词/连续标点/常见搭配错误检查。
+        # 注意：这不是完整的语法检查（未接入 NLP 语法分析引擎），
+        # 仅提供轻量的规则级提示。
         corrections = []
         
         # 常见中文语法问题规则

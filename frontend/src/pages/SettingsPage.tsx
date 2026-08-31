@@ -5,9 +5,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
-import { Settings, User, Bell, Shield, Palette, Brain, Loader2, XCircle, CheckCircle } from 'lucide-react';
-import AIServiceConfig from '../components/AIServiceConfig';
+import { Settings, User, Bell, Shield, Palette, Loader2, XCircle, CheckCircle } from 'lucide-react';
 import { useTheme } from '../components/ThemeProvider';
+import { authApi } from '../api/api';
 
 const SettingsPage: React.FC = () => {
   // 状态管理当前激活的设置项
@@ -26,28 +26,16 @@ const SettingsPage: React.FC = () => {
     useEffect(() => {
       const loadUserData = async () => {
         try {
-          // 模拟API调用，添加兜底数据以防失败
-          // const userData = await authApi.me();
-          // 临时使用模拟数据，确保页面能正常显示
-          const userData = {
-            username: '测试用户',
-            email: 'test@example.com'
-          };
+          const userData = await authApi.me();
           setFormData({
             name: userData.username || '',
             email: userData.email || '',
-            bio: '' // 假设bio字段在后端还未实现
-          });
-          setInitialDataLoaded(true);
-        } catch (err) {
-          console.error('加载用户数据失败:', err);
-          setError('加载用户数据失败，显示默认信息');
-          // 即使API调用失败，也设置默认数据和加载状态
-          setFormData({
-            name: '默认用户',
-            email: 'default@example.com',
             bio: ''
           });
+          setInitialDataLoaded(true);
+        } catch (err: any) {
+          console.error('加载用户数据失败:', err);
+          setError(err.message || '加载用户数据失败，请稍后重试');
           setInitialDataLoaded(true);
         }
       };
@@ -87,14 +75,11 @@ const SettingsPage: React.FC = () => {
           throw new Error('邮箱格式不正确');
         }
 
-        // 模拟API调用更新用户信息
-        // await authApi.updateProfile({
-        //   username: formData.name,
-        //   email: formData.email
-        // });
-        
-        // 模拟成功响应
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // 调用真实接口更新用户信息
+        await authApi.updateProfile({
+          username: formData.name.trim(),
+          email: formData.email.trim()
+        });
 
         setSuccess('个人资料更新成功');
         // 3秒后清除成功信息
@@ -104,11 +89,8 @@ const SettingsPage: React.FC = () => {
         // 3秒后清除错误信息
         setTimeout(() => setError(''), 3000);
       } finally {
-        // 添加一个小延迟，让用户看到加载状态
-        setTimeout(() => {
-          setLoading(false);
-          setIsSubmitting(false);
-        }, 500);
+        setLoading(false);
+        setIsSubmitting(false);
       }
     };
 
@@ -119,13 +101,8 @@ const SettingsPage: React.FC = () => {
       setLoading(true);
       
       try {
-        // 重新加载初始数据
-        // const userData = await authApi.me();
-        // 使用模拟数据，确保页面能正常显示
-        const userData = {
-          username: '测试用户',
-          email: 'test@example.com'
-        };
+        // 重新加载服务器端用户数据
+        const userData = await authApi.me();
         setFormData({
           name: userData.username || '',
           email: userData.email || '',
@@ -478,11 +455,8 @@ const SettingsPage: React.FC = () => {
         // 3秒后清除错误信息
         setTimeout(() => setError(''), 3000);
       } finally {
-        // 添加一个小延迟，让用户看到加载状态
-        setTimeout(() => {
-          setLoading(false);
-          setIsSubmitting(false);
-        }, 500);
+        setLoading(false);
+        setIsSubmitting(false);
       }
     };
 
@@ -772,11 +746,8 @@ const SettingsPage: React.FC = () => {
         // 3秒后清除错误信息
         setTimeout(() => setError(''), 3000);
       } finally {
-        // 添加一个小延迟，让用户看到加载状态
-        setTimeout(() => {
-          setLoading(false);
-          setIsSubmitting(false);
-        }, 500);
+        setLoading(false);
+        setIsSubmitting(false);
       }
     };
 
@@ -959,11 +930,8 @@ const SettingsPage: React.FC = () => {
         // 3秒后清除错误信息
         setTimeout(() => setError(''), 3000);
       } finally {
-        // 添加一个小延迟，让用户看到加载状态
-        setTimeout(() => {
-          setLoading(false);
-          setIsSubmitting(false);
-        }, 500);
+        setLoading(false);
+        setIsSubmitting(false);
       }
     };
 
@@ -995,11 +963,8 @@ const SettingsPage: React.FC = () => {
         // 3秒后清除错误信息
         setTimeout(() => setError(''), 3000);
       } finally {
-        // 添加一个小延迟，让用户看到加载状态
-        setTimeout(() => {
-          setLoading(false);
-          setIsSubmitting(false);
-        }, 500);
+        setLoading(false);
+        setIsSubmitting(false);
       }
     };
 
@@ -1111,14 +1076,6 @@ const SettingsPage: React.FC = () => {
         return <SecuritySettings />;
       case 'app':
         return <AppSettings />;
-      case 'aiService':
-        return (
-          <div id="ai-service-config" className="space-y-4">
-            <h2 className="text-2xl font-bold tracking-tight">AI服务配置</h2>
-            <p className="text-muted-foreground">配置您的AI服务提供商和API密钥，以便使用AI辅助写作功能。</p>
-            <AIServiceConfig />
-          </div>
-        );
       default:
         return null;
     }
@@ -1185,19 +1142,6 @@ const SettingsPage: React.FC = () => {
         </Card>
 
         <Card 
-          className={`cursor-pointer hover:bg-accent transition-colors ${activeSetting === 'aiService' ? 'border-blue-500 bg-blue-50' : ''}`}
-          onClick={() => setActiveSetting('aiService')}
-        >
-          <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-            <Brain className="w-8 h-8 text-blue-500" />
-            <div>
-              <CardTitle className="text-lg">AI服务配置</CardTitle>
-              <CardDescription>管理AI服务连接和API密钥</CardDescription>
-            </div>
-          </CardHeader>
-        </Card>
-
-        <Card 
           className={`cursor-pointer hover:bg-accent transition-colors ${activeSetting === 'app' ? 'border-gray-500 bg-gray-50' : ''}`}
           onClick={() => setActiveSetting('app')}
         >
@@ -1220,7 +1164,6 @@ const SettingsPage: React.FC = () => {
             {activeSetting === 'notification' && '通知设置'}
             {activeSetting === 'security' && '安全设置'}
             {activeSetting === 'app' && '应用设置'}
-            {activeSetting === 'aiService' && 'AI服务配置'}
           </h2>
           <p className="text-muted-foreground">
             {activeSetting === 'profile' && '更新您的个人信息和账户详情'}
@@ -1228,7 +1171,6 @@ const SettingsPage: React.FC = () => {
             {activeSetting === 'notification' && '配置您接收通知的方式和频率'}
             {activeSetting === 'security' && '管理您的账户安全和密码设置'}
             {activeSetting === 'app' && '调整应用的通用设置和偏好'}
-            {activeSetting === 'aiService' && '配置您的AI服务提供商和API密钥'}
           </p>
           {renderActiveSetting()}
         </div>
@@ -1236,12 +1178,6 @@ const SettingsPage: React.FC = () => {
 
 
 
-      <div className="pt-6 border-t">
-        <div className="flex justify-end gap-4">
-          <Button variant="outline">重置所有设置</Button>
-          <Button onClick={() => alert('所有设置已保存')}>保存所有更改</Button>
-        </div>
-      </div>
     </div>
   );
 };
