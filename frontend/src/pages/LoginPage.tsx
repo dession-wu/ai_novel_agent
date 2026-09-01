@@ -31,8 +31,8 @@ const LoginPage = () => {
       // Store token
       apiClient.setToken(response.access_token);
       
-      // Navigate to dashboard
-      navigate('/');
+      // Navigate to dashboard（工作台已由 / 迁移至 /dashboard）
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || '登录失败，请检查用户名和密码');
     } finally {

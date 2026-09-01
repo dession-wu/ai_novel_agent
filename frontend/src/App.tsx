@@ -9,7 +9,7 @@ const EditorPage = lazy(() => import('./pages/EditorPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('access_token');
@@ -29,11 +29,12 @@ function App() {
       }>
         <Routes>
           {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
-          {/* Protected Routes */}
-          <Route path="/" element={
+          {/* Protected Routes（工作台由 / 迁移至 /dashboard，原有保护逻辑不变） */}
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <Layout>
                 <DashboardPage />

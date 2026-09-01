@@ -1,0 +1,120 @@
+/* ==========================================================
+   LandingPage.css —— AI 小说创作平台落地页专属样式
+   仅使用纯 CSS 动画（不引入任何动画库）
+   风格：暖色渐变玻璃拟态（紫 #7C3AED + 橙 #F97316）
+   ========================================================== */
+
+/* ---------- 浮动光斑（大背景光晕） ---------- */
+@keyframes lp-float-orb {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.08);
+  }
+  66% {
+    transform: translate(-25px, 25px) scale(0.95);
+  }
+}
+
+.lp-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.55;
+  animation: lp-float-orb 18s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 不同光斑的动画节奏错开 */
+.lp-orb-slow {
+  animation-duration: 26s;
+  animation-delay: -6s;
+}
+
+.lp-orb-fast {
+  animation-duration: 14s;
+  animation-delay: -3s;
+}
+
+/* ---------- 墨点粒子（小圆点漂浮） ---------- */
+@keyframes lp-ink-drift {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-110px) translateX(18px);
+    opacity: 0;
+  }
+}
+
+.lp-ink {
+  position: absolute;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #7c3aed 0%, #f97316 100%);
+  animation: lp-ink-drift 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ---------- 入场淡入上浮 ---------- */
+@keyframes lp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lp-rise {
+  animation: lp-rise 0.7s ease-out both;
+}
+
+/* 各区块错峰入场 */
+.lp-rise-1 {
+  animation-delay: 0.1s;
+}
+.lp-rise-2 {
+  animation-delay: 0.25s;
+}
+.lp-rise-3 {
+  animation-delay: 0.4s;
+}
+.lp-rise-4 {
+  animation-delay: 0.55s;
+}
+
+/* ---------- 墨滴落下（Hero 区装饰文字下划线） ---------- */
+@keyframes lp-underline-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.lp-underline {
+  transform-origin: left center;
+  animation: lp-underline-grow 1s ease-out 0.8s both;
+}
+
+/* ---------- 减少动效偏好（无障碍） ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .lp-orb,
+  .lp-ink,
+  .lp-rise,
+  .lp-underline {
+    animation: none;
+  }
+}

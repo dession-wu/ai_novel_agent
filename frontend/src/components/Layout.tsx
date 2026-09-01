@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const navItems = [
-    { icon: Home, label: '概览', href: '/' },
+    { icon: Home, label: '概览', href: '/dashboard' },
     { icon: BookOpen, label: '作品管理', href: '/works' },
     { icon: Edit3, label: '写作', href: '/editor' },
     { icon: Settings, label: '设置', href: '/settings' },
