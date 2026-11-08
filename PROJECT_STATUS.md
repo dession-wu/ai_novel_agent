@@ -1,8 +1,8 @@
 # AI Novel Agent System - Project Status
 
-> Last Updated: 2026-01-21
-> Version: v1.1.0
-> Status: Beta Release (Frontend Integration)
+> Last Updated: 2026-08-30
+> Version: v1.1.1
+> Status: P0+P1 fixes completed and re-accepted (2026-08-30); P2 cleanup (legacy backups / Vercel config removal / docs errata) done. Deployment target: self-hosted server (Aliyun/Tencent Cloud) + Docker; Vercel deployment has been dropped.
 
 ## 1. Project Overview
 
@@ -22,7 +22,7 @@
 | Phase 2 | Core Creation Engine (LLM+RAG) | ✅ Completed | 2026-01-20 |
 | Phase 3 | Proofreading & Publishing (Backend) | ✅ Completed | 2026-01-21 |
 | Phase 4 | Frontend Console (React+TS) | ✅ Completed | 2026-01-21 |
-| Phase 5 | Deployment & Optimization | 🔄 In Progress | 2026-02-15 (Est) |
+| Phase 5 | Bugfix & Cleanup | ✅ Completed | 2026-08-30 |
 
 ---
 
@@ -56,10 +56,8 @@
 
 ## 3. Metrics
 
-- **Overall Completion**: ~85%
-  - Backend: 95%
-  - Frontend: 80% (UI Polish needed)
-  - Docs: 90%
+- **Overall Completion**: P0+P1 fixes verified and accepted on 2026-08-30 (chapter creation with real API keys, auth flow, editor, proofreading). P2 cleanup (legacy `.bak` files, Vercel config, docs errata, unused axios dependency) completed.
+- **Known leftovers**: test coverage still limited; mobile responsiveness not fully verified.
 
 ### Risks
 | ID | Risk | Severity | Mitigation |
@@ -71,17 +69,18 @@
 
 ## 4. Next Steps
 
-1. **UAT (User Acceptance Testing)**:
-   - Verify the "Create Novel -> Generate Outline" flow in the UI.
-   - Test the "Proofread" button in the editor.
-2. **Deployment**:
-   - Finalize `docker-compose.yml` to include the frontend build.
-   - Set up CI/CD pipeline (GitHub Actions).
+1. **Deployment (self-hosted, Docker)**:
+   - Target: Aliyun / Tencent Cloud server + Docker (`docker-compose.yml`).
+   - Vercel deployment has been dropped; `vercel.json` / `.vercelignore` removed.
+2. **Hardening**:
+   - Expand test coverage (integration + edge cases).
+   - Mobile responsiveness verification.
 
 ---
 
 ## History
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
+| v1.1.1 | 2026-08-30 | AI Assistant | P0+P1 fixes accepted; P2 cleanup (legacy backups, Vercel config removal, docs errata, axios removal). |
 | v1.1.0 | 2026-01-21 | AI Assistant | Frontend integration, TypeScript refactor, Docs update. |
 | v1.0.0 | 2026-01-20 | AI Assistant | Initial backend release. |

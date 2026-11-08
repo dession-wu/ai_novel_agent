@@ -12,15 +12,10 @@ class ContextManager:
         if not os.path.exists(settings.CHROMA_PERSIST_DIRECTORY):
             os.makedirs(settings.CHROMA_PERSIST_DIRECTORY)
         
-        try:
-            self.embeddings = OpenAIEmbeddings(
-                api_key=settings.OPENAI_API_KEY,
-                model="text-embedding-3-small"
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize OpenAIEmbeddings: {e}")
-            self.embeddings = None
-        
+        # Vector retrieval is optional; no unmetered legacy OpenAI embedding calls.
+        # Re-enable only with an explicit embedding provider and account policy.
+        self.embeddings = None
+
         self.persist_directory = settings.CHROMA_PERSIST_DIRECTORY
         
     def get_vectorstore(self, collection_name: str):

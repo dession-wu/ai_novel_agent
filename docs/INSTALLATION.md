@@ -56,8 +56,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # AI API Configuration
 OPENAI_API_KEY=your-openai-api-key-here  # Optional
-ANTHROPIC_API_KEY=your-anthropic-api-key-here  # Optional
-DEEPSEEK_API_KEY=your-deepseek-api-key-here  # Optional
 
 # Application Configuration
 DEBUG=True

@@ -22,7 +22,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ status, className }) => {
   return (
     <div 
       className={cn(
-        'flex items-center justify-between px-4 py-2 bg-card border-t border-border text-sm text-muted-foreground',
+        'story-editor-status flex items-center justify-between px-4 py-2 bg-card border-t border-border text-sm text-muted-foreground',
         className
       )}
     >

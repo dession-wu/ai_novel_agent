@@ -17,14 +17,14 @@ const Button = React.forwardRef(({ className, variant = 'default', size = 'defau
   // 变体样式 - 优化颜色和效果
   const variantStyles = {
     default: `
-      bg-gradient-to-r from-primary to-primary/90 
+      bg-primary 
       text-primary-foreground 
       hover:from-primary/90 hover:to-primary/80
       shadow-primary/25 hover:shadow-primary/30
       btn-shine
     `,
     destructive: `
-      bg-gradient-to-r from-red-600 to-red-500 
+      bg-red-600 
       text-white 
       hover:from-red-500 hover:to-red-400
       shadow-red-500/25 hover:shadow-red-500/30
@@ -36,7 +36,7 @@ const Button = React.forwardRef(({ className, variant = 'default', size = 'defau
       shadow-none hover:shadow-sm
     `,
     secondary: `
-      bg-gradient-to-r from-secondary to-secondary/80 
+      bg-secondary 
       text-secondary-foreground 
       hover:from-secondary/80 hover:to-secondary/60
       shadow-secondary/20 hover:shadow-secondary/30

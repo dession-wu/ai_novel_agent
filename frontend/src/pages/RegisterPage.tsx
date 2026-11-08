@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
+import StoryAuth from './StoryAuth';
+import { ArrowRight } from 'lucide-react';
 import { authApi } from '../api/api';
 
 const RegisterPage = () => {
@@ -17,7 +15,6 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
 
     if (password !== confirmPassword) {
@@ -25,6 +22,7 @@ const RegisterPage = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       await authApi.register({
         username,
@@ -41,84 +39,15 @@ const RegisterPage = () => {
     }
   };
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">注册账号</CardTitle>
-          <CardDescription className="text-center">
-            创建一个新账号开始您的创作之旅
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">用户名</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="设置用户名"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">电子邮箱</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="您的邮箱地址"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="设置密码"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">确认密码</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="再次输入密码"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-                {error}
-              </div>
-            )}
-            
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? '注册中...' : '注册'}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <div className="text-sm text-muted-foreground">
-            已有账号?{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              直接登录
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
-    </div>
-  );
+  return <StoryAuth register><h2>创建账号</h2><p className="story-auth-caption">为你的第一部作品留一个位置。</p>
+    <form onSubmit={handleSubmit} className="story-auth-form">
+      <div className="story-auth-field"><label htmlFor="username">用户名</label><input id="username" name="username" autoComplete="username" placeholder="设置用户名" value={username} onChange={e => setUsername(e.target.value)} required /></div>
+      <div className="story-auth-field"><label htmlFor="email">电子邮箱</label><input id="email" name="email" type="email" autoComplete="email" placeholder="输入邮箱地址" value={email} onChange={e => setEmail(e.target.value)} required /></div>
+      <div className="story-auth-field"><label htmlFor="password">密码</label><input id="password" name="password" type="password" autoComplete="new-password" placeholder="设置密码" value={password} onChange={e => setPassword(e.target.value)} required /></div>
+      <div className="story-auth-field"><label htmlFor="confirmPassword">确认密码</label><input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" placeholder="再次输入密码" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required /></div>
+      {error && <p className="story-auth-error" role="alert">{error}</p>}
+      <button type="submit" className="story-auth-submit" disabled={isLoading} aria-busy={isLoading}>{isLoading ? '注册中…' : <>创建账号 <ArrowRight size={16} /></>}</button>
+    </form><p className="story-auth-switch">已有账号？<Link to="/login">直接登录</Link></p>
+  </StoryAuth>;
 };
-
 export default RegisterPage;

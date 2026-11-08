@@ -11,18 +11,24 @@ from typing import AsyncGenerator
 
 class LLMService:
     def __init__(self):
-        self.llm = ChatOpenAI(
-            model=settings.OPENAI_MODEL,
-            api_key=settings.OPENAI_API_KEY,
-            temperature=0.7,
-            streaming=True
-        )
+
         self.output_parser = StrOutputParser()
         # 创建一个TTL缓存，最大1000个条目，过期时间3600秒（1小时）
         self.cache = TTLCache(maxsize=1000, ttl=3600)
 
+    @property
+    def llm(self):
+        from app.personal_model import personal_config
+        _, provider, key, _ = personal_config()
+        from app.llm_policy import ENDPOINTS
+        endpoint,model=ENDPOINTS[provider]
+        return ChatOpenAI(model=model,api_key=key,base_url=endpoint,temperature=0.7,streaming=True,timeout=90,max_retries=1,max_tokens=4096,extra_body={'enable_thinking':False} if provider=='bailian' else {})
+
     def _get_cache_key(self, func_name: str, **kwargs) -> str:
         # 生成缓存键，基于函数名和参数的哈希值
+        from app.personal_model import personal_config
+        uid, provider, _, fingerprint = personal_config()
+        kwargs.update(_account=uid, _provider=provider, _key_fingerprint=fingerprint)
         sorted_kwargs = sorted(kwargs.items())
         key_str = f"{func_name}:{str(sorted_kwargs)}"
         return hashlib.md5(key_str.encode()).hexdigest()
@@ -44,13 +50,11 @@ class LLMService:
             "synopsis": synopsis
         }
         
-        # 生成动态Prompt
-        dynamic_prompt = prompt_manager.generate_dynamic_prompt("outline", context)
-        
-        # 使用动态Prompt创建chain
         chain = template | self.llm | self.output_parser
         result = await chain.ainvoke(context)
         
+        from app.llm_policy import SCOPE
+        if result and result.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
         self.cache[cache_key] = result
         return result
 
@@ -75,13 +79,11 @@ class LLMService:
             "world_bible": world_bible
         }
         
-        # 生成动态Prompt
-        dynamic_prompt = prompt_manager.generate_dynamic_prompt("chapter", context_data)
-        
-        # 使用动态Prompt创建chain
         chain = template | self.llm | self.output_parser
         result = await chain.ainvoke(context_data)
         
+        from app.llm_policy import SCOPE
+        if result and result.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
         self.cache[cache_key] = result
         return result
 
@@ -99,24 +101,14 @@ class LLMService:
             "content": content
         }
         
-        # 生成动态Prompt
-        dynamic_prompt = prompt_manager.generate_dynamic_prompt("summary", context)
-        
-        # 使用动态Prompt创建chain
         chain = template | self.llm | self.output_parser
         result = await chain.ainvoke(context)
         
+        from app.llm_policy import SCOPE
+        if result and result.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
         self.cache[cache_key] = result
         return result
     
-    def evaluate_template(self, template_type: str, score: float, feedback: str = None):
-        """评估模板并记录反馈"""
-        prompt_manager.evaluate_template(template_type, score, feedback)
-    
-    def get_template_evaluation(self, template_type: str) -> dict:
-        """获取模板评估数据"""
-        return prompt_manager.get_template_evaluation(template_type)
-
     async def stream_continue_chapter(
         self, 
         title: str, 
@@ -140,6 +132,8 @@ class LLMService:
         chain = CONTINUE_PROMPT | self.llm | self.output_parser
         
         async for chunk in chain.astream(context_data):
+            from app.llm_policy import SCOPE
+            if chunk and chunk.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
             yield chunk
 
     async def stream_improve_text(
@@ -156,6 +150,8 @@ class LLMService:
         }
         chain = IMPROVE_PROMPT | self.llm | self.output_parser
         async for chunk in chain.astream(context_data):
+            from app.llm_policy import SCOPE
+            if chunk and chunk.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
             yield chunk
 
     async def stream_expand_text(
@@ -172,6 +168,8 @@ class LLMService:
         }
         chain = EXPAND_PROMPT | self.llm | self.output_parser
         async for chunk in chain.astream(context_data):
+            from app.llm_policy import SCOPE
+            if chunk and chunk.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
             yield chunk
 
     async def stream_generate_chapter(
@@ -196,6 +194,8 @@ class LLMService:
         }
         chain = CHAPTER_PROMPT | self.llm | self.output_parser
         async for chunk in chain.astream(context_data):
+            from app.llm_policy import SCOPE
+            if chunk and chunk.strip() and SCOPE.get():SCOPE.get()['valid_output']=True
             yield chunk
 
 llm_service = LLMService()

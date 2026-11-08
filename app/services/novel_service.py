@@ -62,6 +62,10 @@ class NovelService:
         db.commit()
         db.refresh(db_chapter)
         
+        # A blank chapter is a manual draft; AI generation is an explicit action.
+        if not outline_snippet.strip():
+            return db_chapter
+
         # Trigger generation - but handle failures gracefully
         try:
             novel = db.query(Novel).filter(Novel.id == novel_id).first()

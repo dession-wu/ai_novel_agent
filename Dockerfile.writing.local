@@ -1,0 +1,3 @@
+FROM local-ai-novel-agent-backend:before-writing-fix
+COPY app/services/novel_service.py /app/app/services/novel_service.py
+COPY app/personal_model.py /app/app/personal_model.py

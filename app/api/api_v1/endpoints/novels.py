@@ -65,6 +65,26 @@ def update_chapter_by_id(
     db.refresh(ch)
     return ch
 
+@router.delete("/chapters/{chapter_id}")
+def delete_chapter_by_id(
+    chapter_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Delete a specific chapter by ID"""
+    ch = db.query(models.Chapter).filter(models.Chapter.id == chapter_id).first()
+    if not ch:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership
+    novel = db.query(models.Novel).get(ch.novel_id)
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    db.delete(ch)
+    db.commit()
+    return {"message": "Chapter deleted"}
+
 @router.get("/", response_model=List[schemas.Novel])
 def list_novels(
     db: Session = Depends(get_db),
@@ -97,7 +117,30 @@ def read_novel(
     db_novel = db.query(models.Novel).filter(models.Novel.id == novel_id).first()
     if db_novel is None:
         raise HTTPException(status_code=404, detail="Novel not found")
+    if db_novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     return db_novel
+
+@router.delete("/{novel_id}")
+def delete_novel(
+    novel_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    db_novel = db.query(models.Novel).filter(models.Novel.id == novel_id).first()
+    if db_novel is None:
+        raise HTTPException(status_code=404, detail="Novel not found")
+    if db_novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # 清理无级联的发布日志，避免孤儿数据
+    db.query(models.PublishLog).filter(models.PublishLog.novel_id == novel_id).delete(synchronize_session=False)
+    
+    # chapters/characters/locations/world_settings 及章节下的 revisions/comments
+    # 均已在 models 中配置 cascade="all, delete-orphan"，随小说级联删除
+    db.delete(db_novel)
+    db.commit()
+    return {"message": "Novel deleted"}
 
 @router.post("/{novel_id}/generate_outline", response_model=str)
 async def generate_outline(
@@ -105,6 +148,11 @@ async def generate_outline(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
+    db_novel = db.query(models.Novel).filter(models.Novel.id == novel_id).first()
+    if not db_novel:
+        raise HTTPException(status_code=404, detail="Novel not found")
+    if db_novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     try:
         outline = await novel_service.generate_novel_outline(db, novel_id)
         return outline
@@ -124,6 +172,8 @@ async def create_chapter(
     db_novel = db.query(models.Novel).filter(models.Novel.id == novel_id).first()
     if not db_novel:
         raise HTTPException(status_code=404, detail="Novel not found")
+    if db_novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
         
     return await novel_service.create_chapter(
         db=db,
@@ -139,6 +189,12 @@ def read_chapters(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
+    # Verify ownership
+    novel = db.query(models.Novel).filter(models.Novel.id == novel_id).first()
+    if not novel:
+        raise HTTPException(status_code=404, detail="Novel not found")
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     return db.query(models.Chapter).filter(models.Chapter.novel_id == novel_id).order_by(models.Chapter.order).all()
 
 @router.get("/{novel_id}/chapters/{chapter_id}", response_model=schemas.Chapter)
@@ -152,6 +208,11 @@ def read_chapter(
     ch = db.query(models.Chapter).filter(models.Chapter.id == chapter_id, models.Chapter.novel_id == novel_id).first()
     if not ch:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership
+    novel = db.query(models.Novel).get(ch.novel_id)
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     return ch
 
 @router.post("/{novel_id}/chapters/{chapter_id}/proofread")
@@ -164,9 +225,15 @@ async def proofread_chapter(
     ch = db.query(models.Chapter).filter(models.Chapter.id == chapter_id, models.Chapter.novel_id == novel_id).first()
     if not ch:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership
+    novel = db.query(models.Novel).get(ch.novel_id)
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
     sensitive = proofreading_service.filter_sensitive(ch.content or "")
-    grammar = await proofreading_service.grammar_check(ch.content or "")
-    return {"sensitive": sensitive, "grammar": grammar}
+    basic_check = await proofreading_service.basic_text_check(ch.content or "")
+    return {"sensitive": sensitive, "basic_text_check": basic_check}
 
 @router.post("/{novel_id}/chapters/{chapter_id}/status/{target}")
 def change_status(
@@ -179,6 +246,12 @@ def change_status(
     ch = db.query(models.Chapter).filter(models.Chapter.id == chapter_id, models.Chapter.novel_id == novel_id).first()
     if not ch:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership
+    novel = db.query(models.Novel).get(ch.novel_id)
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
     try:
         updated = proofreading_service.transition_status(db, ch, ChapterStatus(target))
         return {"status": updated.status}
@@ -315,6 +388,10 @@ async def stream_generate_chapter(
     
     context = prev_chapter.content[-1000:] if prev_chapter and prev_chapter.content else "第一章"
     
+    # outline_snippet 仅在创建章节时作为生成入参使用，Chapter 模型未持久化该列；
+    # 此处安全取值并回退到 summary，避免 AttributeError
+    chapter_outline = getattr(chapter, "outline_snippet", None) or chapter.summary or ""
+    
     # Prepare World Bible
     characters = novel.characters
     locations = novel.locations
@@ -331,7 +408,7 @@ async def stream_generate_chapter(
                 chapter_order=chapter.order,
                 chapter_title=chapter.title,
                 context=context,
-                chapter_outline=chapter.outline_snippet or "",
+                chapter_outline=chapter_outline,
                 world_bible=world_bible
             ):
                 yield f"data: {json.dumps({'content': chunk})}\n\n"
@@ -395,6 +472,12 @@ def add_comment(
     ch = db.query(models.Chapter).filter(models.Chapter.id == chapter_id, models.Chapter.novel_id == novel_id).first()
     if not ch:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership
+    novel = db.query(models.Novel).get(ch.novel_id)
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
     c = proofreading_service.add_comment(db, ch, author, body)
     return {"id": c.id}
 
@@ -410,6 +493,11 @@ def update_chapter(
     ch = db.query(models.Chapter).filter(models.Chapter.id == chapter_id, models.Chapter.novel_id == novel_id).first()
     if not ch:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership
+    novel = db.query(models.Novel).get(ch.novel_id)
+    if novel.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     # Update chapter fields if provided
     if chapter_update.title is not None:

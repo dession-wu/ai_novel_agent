@@ -10,8 +10,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -87,9 +87,6 @@ dist-ssr/
 # Docker
 .dockerignore
 
-# Vercel
-.vercel
-
 # Trae
 .trae/
 
@@ -100,3 +97,25 @@ start_all.ps1
 start_all_simple.ps1
 test_*.py
 view_novels.py
+
+# Local runtime data and private configuration
+node_modules/
+.next/
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.db
+*.sqlite*
+*.log
+*.tsbuildinfo
+/private-model-data/
+/data/
+**/uploads/
+project.private.config.json
+*.pem
+*.key

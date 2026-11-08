@@ -8,7 +8,8 @@ import NotificationContainer from './components/Notification'
 import { LoadingProvider } from './components/LoadingContext'
 import GlobalLoader from './components/GlobalLoader'
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+const root = document.getElementById('root') as HTMLElement
+const tree = (
   <React.StrictMode>
     <ThemeProvider>
       <NotificationProvider>
@@ -19,5 +20,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         </LoadingProvider>
       </NotificationProvider>
     </ThemeProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 )
+
+if (root.dataset.prerendered === 'true') ReactDOM.hydrateRoot(root, tree)
+else ReactDOM.createRoot(root).render(tree)

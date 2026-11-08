@@ -1,126 +1,20 @@
-import React from 'react';
-import { Button } from './ui/button';
+import { Bold, Italic, List, Save, BookOpen, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
+import { Button } from './ui/button'
 
-interface ToolbarAction {
-  id: string;
-  label: string;
-  icon: string;
-  category: 'formatting' | 'editing' | 'ai';
-}
-
-interface ToolbarProps {
-  onAction: (actionId: string) => void;
-  className?: string;
-}
-
-const Toolbar: React.FC<ToolbarProps> = ({ onAction, className }) => {
-  // 工具栏动作列表
-  const toolbarActions: ToolbarAction[] = [
-    // 格式化选项
-    { id: 'bold', label: '粗体', icon: '𝐁', category: 'formatting' },
-    { id: 'italic', label: '斜体', icon: '𝐼', category: 'formatting' },
-    { id: 'underline', label: '下划线', icon: '𝑼', category: 'formatting' },
-    { id: 'strikethrough', label: '删除线', icon: '𝑆', category: 'formatting' },
-    { id: 'h1', label: '标题1', icon: 'H1', category: 'formatting' },
-    { id: 'h2', label: '标题2', icon: 'H2', category: 'formatting' },
-    { id: 'h3', label: '标题3', icon: 'H3', category: 'formatting' },
-    { id: 'bullet', label: '无序列表', icon: '• 列表', category: 'formatting' },
-    { id: 'number', label: '有序列表', icon: '1. 列表', category: 'formatting' },
-    { id: 'quote', label: '引用', icon: '" 引用', category: 'formatting' },
-    { id: 'code', label: '代码', icon: '</> 代码', category: 'formatting' },
-    { id: 'link', label: '链接', icon: '🔗 链接', category: 'formatting' },
-    
-    // 编辑工具
-    { id: 'save', label: '保存', icon: '💾 保存', category: 'editing' },
-    { id: 'world', label: '设定集', icon: '🌍 设定', category: 'editing' },
-    { id: 'consistency', label: '逻辑检查', icon: '🛡️ 审校', category: 'editing' },
-    { id: 'preview', label: '预览', icon: '👁️ 预览', category: 'editing' },
-    { id: 'clear', label: '清空', icon: '🗑️ 清空', category: 'editing' },
-    
-    // AI辅助功能
-    { id: 'ai-continue', label: 'AI续写', icon: '✨ AI续写', category: 'ai' },
-    { id: 'ai-generate', label: 'AI生成', icon: '🤖 AI生成', category: 'ai' },
-    { id: 'ai-improve', label: 'AI润色', icon: '✨ AI润色', category: 'ai' },
-    { id: 'ai-expand', label: 'AI扩展', icon: '📝 AI扩展', category: 'ai' },
-  ];
-
-  // 按类别分组动作
-  const groupedActions = toolbarActions.reduce((groups, action) => {
-    if (!groups[action.category]) {
-      groups[action.category] = [];
-    }
-    groups[action.category].push(action);
-    return groups;
-  }, {} as Record<string, ToolbarAction[]>);
-
-  return (
-    <div 
-      className={`flex flex-wrap items-center gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm ${className || ''}`}
-      role="toolbar"
-      aria-label="编辑工具栏"
-      aria-orientation="horizontal"
-    >
-      {/* 格式化选项组 */}
-      <div className="flex items-center gap-1" role="group" aria-label="文本格式化">
-        {groupedActions.formatting?.map((action) => (
-          <Button
-            key={action.id}
-            variant="ghost"
-            size="sm"
-            className="gap-1 h-9 focus:ring-2 focus:ring-primary focus:outline-none"
-            onClick={() => onAction(action.id)}
-            aria-label={action.label}
-            title={action.label}
-            tabIndex={0}
-          >
-            <span className="text-sm">{action.icon}</span>
-          </Button>
-        ))}
-      </div>
-
-      {/* 分隔线 */}
-      <div className="w-px h-8 bg-border mx-1" aria-hidden="true"></div>
-
-      {/* 编辑工具组 */}
-      <div className="flex items-center gap-1" role="group" aria-label="编辑工具">
-        {groupedActions.editing?.map((action) => (
-          <Button
-            key={action.id}
-            variant="ghost"
-            size="sm"
-            className="gap-1 h-9 focus:ring-2 focus:ring-primary focus:outline-none"
-            onClick={() => onAction(action.id)}
-            aria-label={action.label}
-            title={action.label}
-            tabIndex={0}
-          >
-            <span className="text-sm">{action.icon}</span>
-          </Button>
-        ))}
-      </div>
-
-      {/* 分隔线 */}
-      <div className="w-px h-8 bg-border mx-1" aria-hidden="true"></div>
-
-      {/* AI辅助功能组 */}
-      <div className="flex items-center gap-1" role="group" aria-label="AI辅助功能">
-        {groupedActions.ai?.map((action) => (
-          <Button
-            key={action.id}
-            variant="ghost"
-            size="sm"
-            className="gap-1 h-9 focus:ring-2 focus:ring-primary focus:outline-none"
-            onClick={() => onAction(action.id)}
-            aria-label={action.label}
-            title={action.label}
-            tabIndex={0}
-          >
-            <span className="text-sm">{action.icon}</span>
-          </Button>
-        ))}
-      </div>
+export default function Toolbar({ onAction, className = '' }: { onAction: (action: string) => void; className?: string }) {
+  return <div className={`story-editor-toolbar ${className}`} role="toolbar" aria-label="编辑工具栏">
+    <div role="group" aria-label="文本格式化" className="story-toolbar-group">
+      {[[Bold, 'bold', '粗体'], [Italic, 'italic', '斜体'], [List, 'bullet', '无序列表']].map(([Icon, id, label]) => { const Mark = Icon as typeof Bold; return <Button key={String(id)} variant="ghost" size="icon" aria-label={String(label)} title={String(label)} onClick={() => onAction(String(id))}><Mark size={16} /></Button> })}
+      <select aria-label="更多文本格式" value="" onChange={event => { if(event.target.value) onAction(event.target.value) }}><option value="">更多格式</option><option value="h1">一级标题</option><option value="h2">二级标题</option><option value="h3">三级标题</option><option value="underline">下划线</option><option value="strikethrough">删除线</option><option value="number">有序列表</option><option value="quote">引用</option><option value="code">代码</option><option value="link">链接</option></select>
     </div>
-  );
-};
-
-export default Toolbar;
+    <div role="group" aria-label="编辑工具" className="story-toolbar-group">
+      <Button variant="ghost" size="sm" onClick={() => onAction('world')}><BookOpen size={15} />设定</Button>
+      <Button variant="ghost" size="sm" onClick={() => onAction('consistency')}><ShieldCheck size={15} />审校</Button>
+      <Button variant="ghost" size="icon" aria-label="清空" title="清空当前章节" onClick={() => onAction('clear')}><Trash2 size={15} /></Button>
+    </div>
+    <div role="group" aria-label="AI辅助与保存" className="story-toolbar-group story-toolbar-actions"><Sparkles size={15} />
+      <select aria-label="AI写作辅助" value="" onChange={event => { if(event.target.value) onAction(event.target.value) }}><option value="">AI 辅助</option><option value="ai-continue">续写</option><option value="ai-generate">生成</option><option value="ai-improve">润色</option><option value="ai-expand">扩写</option></select>
+      <Button size="sm" onClick={() => onAction('save')}><Save size={15} />保存</Button>
+    </div>
+  </div>
+}

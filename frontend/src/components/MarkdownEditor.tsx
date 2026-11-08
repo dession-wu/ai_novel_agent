@@ -1,74 +1,20 @@
+import { aiFetch } from '../lib/aiOperation.mjs';
 import React, { useState, useEffect, useRef, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { useNotification } from './NotificationContext';
 import { novelApi } from '../api/api';
 
-// 增强的Markdown渲染函数
-const enhancedMarkdownRender = (text: string) => {
-  let html = text;
-  
-  // 1. 处理代码块
-  html = html.replace(/```([\s\S]*?)```/g, (_match, code) => {
-    // 简单的代码高亮模拟
-    return `<pre><code class="code-block">${code.trim()}</code></pre>`;
-  });
-  
-  // 2. 处理表格
-  // 匹配表格头
-  html = html.replace(/^(\|.*\|)\n(\|---*\|.*\|)((\n\|.*\|)+)/gm, (_match, header, _separator, rows) => {
-    let tableHtml = '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; margin: 10px 0;">';
-    
-    // 处理表头
-    tableHtml += '<thead><tr>';
-    const headers = (header as string).split('|').filter(h => h.trim() !== '');
-    headers.forEach(h => {
-      tableHtml += `<th>${h.trim()}</th>`;
-    });
-    tableHtml += '</tr></thead>';
-    
-    // 处理表体
-    tableHtml += '<tbody>';
-    const rowsArr = (rows as string).split('\n').filter(r => r.trim() !== '');
-    rowsArr.forEach(row => {
-      tableHtml += '<tr>';
-      const cells = row.split('|').filter(c => c.trim() !== '');
-      cells.forEach(cell => {
-        tableHtml += `<td>${cell.trim()}</td>`;
-      });
-      tableHtml += '</tr>';
-    });
-    tableHtml += '</tbody></table>';
-    
-    return tableHtml;
-  });
-  
-  // 3. 处理无序列表
-  html = html.replace(/^[\s]*[-*+]\s+(.*$)/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*?<\/li>)(?!<li>)/gs, '<ul>$1</ul>');
-  
-  // 4. 处理有序列表
-  html = html.replace(/^[\s]*\d+\.\s+(.*$)/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*?<\/li>)(?!<li>)/gs, '<ol>$1</ol>');
-  
-  // 5. 处理粗体
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // 6. 处理斜体
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  
-  // 7. 处理标题
-  html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-  
-  // 8. 处理换行
-  html = html.replace(/\n/g, '<br />');
-  
-  return { __html: html };
-};
+async function requireAIResponse(response: Response) {
+  if (response.ok) return;
+  const body = await response.json().catch(() => ({}));
+  throw new Error(typeof body.detail === 'string' ? body.detail : 'AI 请求失败，请检查网络和模型设置。');
+}
+
+import { renderMarkdownPreview as enhancedMarkdownRender } from '../lib/markdownPreview.mjs';
 
 interface MarkdownEditorProps {
   initialContent?: string;
   onSave?: (content: string) => Promise<boolean>;
+  onContentChange?: (content: string) => void;
   chapterId: number;
   novelId?: number;
 }
@@ -81,16 +27,18 @@ export interface MarkdownEditorRef {
   setContent: (content: string) => void;
 }
 
-const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ initialContent = '', onSave, chapterId, novelId }, ref) => {
+const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ initialContent = '', onSave, onContentChange, chapterId, novelId }, ref) => {
   const { addNotification } = useNotification();
   const [content, setContent] = useState<string>(initialContent);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [previewMode, setPreviewMode] = useState<'split' | 'edit' | 'preview'>('split');
+  const [previewMode, setPreviewMode] = useState<'split' | 'edit' | 'preview'>('edit');
   const [wordCount, setWordCount] = useState<number>(0);
   const [charCount, setCharCount] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => { onContentChange?.(content); }, [content, onContentChange]);
 
   // 格式化工具函数
   const insertFormatting = useCallback((format: string) => {
@@ -219,7 +167,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
       setIsSaving(true);
       try {
         if (onSave) {
-          await onSave(content);
+          if (!await onSave(content)) throw new Error('章节未保存');
           setLastSaved(new Date());
           // 显示自动保存成功通知
           addNotification({
@@ -254,7 +202,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
     setIsSaving(true);
     try {
       if (onSave) {
-        await onSave(content);
+        if (!await onSave(content)) throw new Error('章节未保存');
         setLastSaved(new Date());
         // 显示手动保存成功通知
         addNotification({
@@ -298,7 +246,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         const token = localStorage.getItem('access_token');
         const url = novelApi.getStreamContinueUrl(novelId, chapterId);
         
-        const response = await fetch(url, {
+        const response = await aiFetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -310,9 +258,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             })
         });
 
-        if (!response.ok) {
-            throw new Error('AI续写请求失败');
-        }
+        await requireAIResponse(response);
 
         if (!response.body) {
             throw new Error('ReadableStream not supported');
@@ -321,6 +267,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let generatedLength = 0;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -338,20 +285,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
                     try {
                         const data = JSON.parse(dataStr);
                         if (data.content) {
-                            // 实时插入内容到编辑器
-                            setContent(prev => {
-                                // 重新获取光标位置（因为每次更新可能会重置光标）
-                                // 这里简化处理：直接在之前的光标后追加
-                                // 更好的做法是维护一个插入点引用
-                                return prev.slice(0, cursorPosition) + data.content + prev.slice(cursorPosition);
-                            });
-                            
-                            // 更新插入位置，以便下一次插入在之后
-                            // 注意：这里的逻辑有缺陷，因为 setContent 是异步的，
-                            // cursorPosition 在闭包中是固定的。
-                            // 正确的做法应该是：
-                            // 1. 维护一个 ref 记录已生成的总长度
-                            // 2. 每次 setContent 时，插入位置 = 初始光标 + 已生成长度
+                            // 实时插入内容到编辑器：插入位置 = 初始光标 + 已生成长度
+                            // （与 handleAIGenerateStream 一致的 insertStreamChunk 模式，
+                            // 修复原实现闭包固定 cursorPosition 导致流块序颠倒的问题）
+                            insertStreamChunk(data.content, cursorPosition, generatedLength);
+                            generatedLength += data.content.length;
                         }
                     } catch (e) {
                         console.error('解析SSE数据失败', e);
@@ -359,11 +297,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
                 }
             }
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('AI续写出错:', error);
         addNotification({
             type: 'error',
-            message: 'AI续写服务暂时不可用',
+            message: error.message || 'AI续写服务暂时不可用',
             duration: 3000
         });
     } finally {
@@ -388,14 +326,14 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         const token = localStorage.getItem('access_token');
         const url = novelApi.getStreamGenerateUrl(novelId, chapterId);
         
-        const response = await fetch(url, {
+        const response = await aiFetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
-        if (!response.ok) throw new Error('AI生成失败');
+        await requireAIResponse(response);
         if (!response.body) throw new Error('No response body');
 
         const reader = response.body.getReader();
@@ -461,12 +399,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         const token = localStorage.getItem('access_token');
         const url = novelApi.getStreamImproveUrl(novelId, chapterId);
         
-        // 先清空选中的内容，准备插入新的
+        // Keep the original selection until an actual replacement arrives.
         const contentBefore = content.substring(0, startPos);
         const contentAfter = content.substring(endPos);
-        setContent(contentBefore + contentAfter);
 
-        const response = await fetch(url, {
+        const response = await aiFetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -475,7 +412,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             body: JSON.stringify({ content: selectedText })
         });
 
-        if (!response.ok) throw new Error('AI润色失败');
+        await requireAIResponse(response);
         if (!response.body) throw new Error('No response body');
 
         const reader = response.body.getReader();
@@ -499,7 +436,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
                     try {
                         const data = JSON.parse(dataStr);
                         if (data.content) {
-                            insertStreamChunk(data.content, startPos, generatedLength);
+                            if (!generatedLength) setContent(contentBefore + data.content + contentAfter);
+                            else insertStreamChunk(data.content, startPos, generatedLength);
                             generatedLength += data.content.length;
                         }
                     } catch (e) {
@@ -509,6 +447,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             }
         }
     } catch (error: any) {
+        setContent(content);
         addNotification({ type: 'error', message: `AI润色失败: ${error.message}` });
     } finally {
         setIsGenerating(false);
@@ -534,12 +473,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         const token = localStorage.getItem('access_token');
         const url = novelApi.getStreamExpandUrl(novelId, chapterId);
         
-        // 先清空选中的内容，准备插入新的
+        // Keep the original selection until an actual replacement arrives.
         const contentBefore = content.substring(0, startPos);
         const contentAfter = content.substring(endPos);
-        setContent(contentBefore + contentAfter);
 
-        const response = await fetch(url, {
+        const response = await aiFetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -548,7 +486,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             body: JSON.stringify({ content: selectedText })
         });
 
-        if (!response.ok) throw new Error('AI扩展失败');
+        await requireAIResponse(response);
         if (!response.body) throw new Error('No response body');
 
         const reader = response.body.getReader();
@@ -572,7 +510,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
                     try {
                         const data = JSON.parse(dataStr);
                         if (data.content) {
-                            insertStreamChunk(data.content, startPos, generatedLength);
+                            if (!generatedLength) setContent(contentBefore + data.content + contentAfter);
+                            else insertStreamChunk(data.content, startPos, generatedLength);
                             generatedLength += data.content.length;
                         }
                     } catch (e) {
@@ -582,6 +521,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             }
         }
     } catch (error: any) {
+        setContent(content);
         addNotification({ type: 'error', message: `AI扩展失败: ${error.message}` });
     } finally {
         setIsGenerating(false);
@@ -623,7 +563,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         
         console.log('Fetching AI stream from:', url);
         
-        const response = await fetch(url, {
+        const response = await aiFetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -712,7 +652,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
 
   return (
     <div className="markdown-editor w-full h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
-      {/* 工具栏 */}
+      <details className="story-advanced-format"><summary>扩展排版工具</summary>
       <div className="editor-toolbar bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3 flex flex-wrap gap-2 items-center" role="toolbar" aria-label="Markdown格式化工具栏" aria-orientation="horizontal">
         {/* 格式化工具 */}
         <div className="format-tools flex gap-1" role="group" aria-label="文本格式化选项">
@@ -894,11 +834,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
         </div>
       </div>
       
+      </details>
       {/* 模式切换栏 */}
       <div className="editor-header bg-white dark:bg-gray-850 border-b border-gray-200 dark:border-gray-700 p-2 flex justify-between items-center">
         <div className="mode-buttons flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600" role="group" aria-label="编辑器模式切换">
           <button
-            className={`px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary focus:outline-none ${previewMode === 'edit' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+            className={`px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary focus:outline-none ${previewMode === 'edit' ? 'bg-primary text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
             onClick={() => togglePreviewMode('edit')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -912,7 +853,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             编辑
           </button>
           <button
-            className={`px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary focus:outline-none ${previewMode === 'split' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+            className={`px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary focus:outline-none ${previewMode === 'split' ? 'bg-primary text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
             onClick={() => togglePreviewMode('split')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -926,7 +867,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             分屏
           </button>
           <button
-            className={`px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary focus:outline-none ${previewMode === 'preview' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
+            className={`px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-primary focus:outline-none ${previewMode === 'preview' ? 'bg-primary text-white' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'}`}
             onClick={() => togglePreviewMode('preview')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -955,7 +896,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
               }
             }}
             disabled={isSaving}
-            className={`px-4 py-2 rounded transition-all font-medium text-sm focus:ring-2 focus:ring-primary focus:outline-none ${isSaving ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'}`}
+            className={`px-4 py-2 rounded transition-all font-medium text-sm focus:ring-2 focus:ring-primary focus:outline-none ${isSaving ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-300 cursor-not-allowed' : 'bg-primary hover:opacity-90 text-white active:scale-95'}`}
             aria-label={isSaving ? '保存中...' : '保存内容'}
             aria-disabled={isSaving}
             tabIndex={0}
@@ -977,9 +918,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
             <textarea
               ref={textareaRef}
               value={content}
+              readOnly={isGenerating}
               onChange={handleContentChange}
               onKeyDown={handleKeyDown}
-              placeholder="开始编写你的小说章节...\n\n支持 Markdown 语法，例如：\n# 标题\n**粗体** *斜体*\n- 列表项\n1. 有序列表项\n\n按 Ctrl+J 使用 AI 续写..."
+              placeholder="从这里，写下你的第一句话。"
               className="editor-textarea w-full h-full p-5 border-none resize-none font-sans text-base dark:text-gray-200 dark:bg-gray-900 bg-white focus:ring-2 focus:ring-primary focus:outline-none placeholder-gray-400 dark:placeholder-gray-500 line-height-relaxed"
               aria-label="Markdown编辑器"
               role="textbox"
@@ -1255,7 +1197,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({ ini
       `}</style>
     </div>
   );
-};
+});
 
 // 使用React.memo优化组件渲染
 export default React.memo(MarkdownEditor);
